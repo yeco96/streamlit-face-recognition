@@ -1,56 +1,82 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Datos de ejemplo
-data = pd.DataFrame({
-    'Región': ['Norte', 'Sur', 'Este', 'Oeste'],
-    'Producto A': [75, 80, 65, 90],
-    'Producto B': [85, 70, 60, 88]
-})
+st.set_page_config(page_title="Detective de Datos: Detección de Fraude", layout="wide")
 
-st.set_page_config(page_title="Del dato al poder", layout="centered")
+st.title("🕵️‍♂️ El Detective de Datos: Desvelando Patrones de Fraude")
 
-st.title("📊 ¿Del dato al poder o a la manipulación?")
-st.write("Misma data, distintas visualizaciones. ¿Cuál te convence más?")
-
-st.subheader("🔍 Datos crudos")
-st.dataframe(data)
-
-# Selector de tipo de gráfico
-chart_type = st.selectbox(
-    "Selecciona tipo de gráfico a mostrar:", 
-    ["Bar Chart Comparativo", "Área acumulada", "Line Chart con exageración", "Pie Chart por región"]
+st.write(
+    "Imagina que somos un banco y queremos detectar transacciones sospechosas. "
+    "Usaremos la Ciencia de Datos para encontrar patrones 'extraños' en nuestros datos."
 )
 
-# Gráfico: Barras comparativas
-if chart_type == "Bar Chart Comparativo":
-    fig, ax = plt.subplots()
-    data.plot(x="Región", kind="bar", ax=ax, color=["skyblue", "orange"])
-    ax.set_title("Comparación directa entre productos")
-    st.pyplot(fig)
+st.sidebar.header("Configuración de la Detección")
 
-# Gráfico: Área acumulada
-elif chart_type == "Área acumulada":
-    fig, ax = plt.subplots()
-    data.set_index("Región").plot.area(ax=ax, alpha=0.6)
-    ax.set_title("Percepción acumulada por región")
-    st.pyplot(fig)
+# --- Generación de Datos Simulados ---
+@st.cache_data
+def generate_data(num_transactions=1000, num_fraud=30):
+    np.random.seed(42) # Para reproducibilidad
 
-# Gráfico: Línea con escala exagerada
-elif chart_type == "Line Chart con exageración":
-    exaggerated = data.copy()
-    exaggerated[['Producto A', 'Producto B']] = exaggerated[['Producto A', 'Producto B']] * 10
-    fig, ax = plt.subplots()
-    exaggerated.set_index("Región").plot(ax=ax, linestyle='--', marker='o')
-    ax.set_title("Escala exagerada (¡cuidado con la manipulación!)")
-    st.pyplot(fig)
+    # Transacciones normales
+    normal_monto = np.random.normal(loc=50, scale=20, size=num_transactions)
+    normal_frecuencia = np.random.normal(loc=3, scale=1, size=num_transactions)
+    df_normal = pd.DataFrame({
+        'Monto_Transaccion': np.clip(normal_monto, 1, 100), # Monto entre 1 y 100
+        'Frecuencia_Compra_Dia': np.clip(normal_frecuencia, 0.5, 5), # Frecuencia entre 0.5 y 5
+        'Tipo': 'Normal'
+    })
 
-# Gráfico: Pie chart por región
-elif chart_type == "Pie Chart por región":
-    region = st.selectbox("Selecciona la región:", data["Región"])
-    row = data[data["Región"] == region][['Producto A', 'Producto B']].iloc[0]
-    fig, ax = plt.subplots()
-    ax.pie(row, labels=row.index, autopct='%1.1f%%', startangle=90, colors=["lightgreen", "salmon"])
-    ax.set_title(f"Participación en la región {region}")
-    st.pyplot(fig)
+    # Transacciones fraudulentas (simulamos que son de montos muy altos y/o frecuencias muy bajas)
+    fraud_monto = np.random.normal(loc=150, scale=30, size=num_fraud)
+    fraud_frecuencia = np.random.normal(loc=0.8, scale=0.3, size=num_fraud)
+    df_fraud = pd.DataFrame({
+        'Monto_Transaccion': np.clip(fraud_monto, 100, 200),
+        'Frecuencia_Compra_Dia': np.clip(fraud_frecuencia, 0.1, 1.5),
+        'Tipo': 'Fraude'
+    })
+
+    df = pd.concat([df_normal, df_fraud], ignore_index=True)
+    df = df.sample(frac=1, random_state=42).reset_index(drop=True) # Mezclar los datos
+    return df
+
+df = generate_data()
+
+st.subheader("Simulación de Transacciones Bancarias")
+st.write(f"Hemos generado {len(df)} transacciones para nuestro análisis.")
+st.dataframe(df.head())
+
+# --- Gráfico de Dispersión Interactivo ---
+st.subheader("Análisis Visual de Transacciones")
+st.write(
+    "Observa cómo se agrupan las transacciones por su **Monto** y **Frecuencia de Compra**. "
+    "Las transacciones de fraude (en rojo) suelen ser 'puntos atípicos' que se desvían de lo normal."
+)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.scatterplot(
+    data=df,
+    x='Frecuencia_Compra_Dia',
+    y='Monto_Transaccion',
+    hue='Tipo', # Colorear por tipo (Normal/Fraude)
+    palette={'Normal': 'blue', 'Fraude': 'red'},
+    s=100,
+    alpha=0.7,
+    ax=ax
+)
+ax.set_title("Monto vs. Frecuencia de Compra por Transacción")
+ax.set_xlabel("Frecuencia de Compra por Día")
+ax.set_ylabel("Monto de Transacción (<span class="math-inline">\)"\)
+st\.pyplot\(fig\)
+\# \-\-\- Detector de Fraude con Umbral Interactivo \-\-\-
+st\.sidebar\.subheader\("Ajuste del Umbral de Detección"\)
+st\.sidebar\.write\(
+"Ajusta el umbral del \*\*Monto de Transacción\*\* para ver cuántas transacciones "
+"sospechosas podemos 'detectar'\. Una transacción será marcada como fraude si su monto supera este umbral\."
+\)
+umbral\_monto \= st\.sidebar\.slider\(
+"Monto Mínimo para Fraude \(</span>)",
+    min_value=50.0,
+    max_
