@@ -1,80 +1,56 @@
 import streamlit as st
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
+import matplotlib.pyplot as plt
 
-# Dataset simulado con y sin sesgo
-def get_dataset(biased=True):
-    if biased:
-        # Modelo sesgado: rechaza sistemáticamente ciertos perfiles
-        data = {
-            'income': [50000, 60000, 30000, 40000, 80000, 35000],
-            'gender': [0, 1, 0, 1, 0, 1],  # 0: Masculino, 1: Femenino
-            'race':   [0, 0, 1, 1, 0, 1],  # 0: Blanco, 1: Negro
-            'approved': [1, 1, 0, 0, 1, 0]
-        }
-    else:
-        # Modelo justo: decisiones basadas solo en ingresos, no en género/raza
-        data = {
-            'income': [50000, 60000, 30000, 40000, 80000, 35000],
-            'gender': [0, 1, 0, 1, 0, 1],
-            'race':   [0, 0, 1, 1, 0, 1],
-            'approved': [1, 1, 0, 1, 1, 0]  # Más balanceado y justo
-        }
-    return pd.DataFrame(data)
+# Datos de ejemplo
+data = pd.DataFrame({
+    'Región': ['Norte', 'Sur', 'Este', 'Oeste'],
+    'Producto A': [75, 80, 65, 90],
+    'Producto B': [85, 70, 60, 88]
+})
 
-# Entrena un modelo simple
-def train_model(biased=True):
-    df = get_dataset(biased)
-    X = df[['income', 'gender', 'race']]
-    y = df['approved']
-    model = LogisticRegression()
-    model.fit(X, y)
-    return model
+st.set_page_config(page_title="Del dato al poder", layout="centered")
 
-# Predicción
-def predict(model, income, gender, race):
-    X_new = pd.DataFrame([[income, gender, race]], columns=['income', 'gender', 'race'])
-    return model.predict(X_new)[0]
+st.title("📊 ¿Del dato al poder o a la manipulación?")
+st.write("Misma data, distintas visualizaciones. ¿Cuál te convence más?")
 
-# ==============================
-# Interfaz de Streamlit
-# ==============================
+st.subheader("🔍 Datos crudos")
+st.dataframe(data)
 
-st.title("⚖️ ¿Y si el algoritmo es racista?")
-st.markdown("### Simulación de sesgo en un modelo de aprobación de crédito")
-st.markdown("Este ejemplo muestra cómo un modelo puede tomar decisiones injustas si los datos con los que fue entrenado contienen sesgos.")
+# Selector de tipo de gráfico
+chart_type = st.selectbox(
+    "Selecciona tipo de gráfico a mostrar:", 
+    ["Bar Chart Comparativo", "Área acumulada", "Line Chart con exageración", "Pie Chart por región"]
+)
 
-# Entrada de usuario
-income = st.number_input("💵 Ingreso anual (USD)", min_value=10000, max_value=100000, step=5000)
-gender = st.selectbox("🧍 Género", ["Masculino", "Femenino"])
-race = st.selectbox("🧑 Raza", ["Blanco", "Negro"])
+# Gráfico: Barras comparativas
+if chart_type == "Bar Chart Comparativo":
+    fig, ax = plt.subplots()
+    data.plot(x="Región", kind="bar", ax=ax, color=["skyblue", "orange"])
+    ax.set_title("Comparación directa entre productos")
+    st.pyplot(fig)
 
-# Convertir a valores numéricos
-gender_val = 0 if gender == "Masculino" else 1
-race_val = 0 if race == "Blanco" else 1
+# Gráfico: Área acumulada
+elif chart_type == "Área acumulada":
+    fig, ax = plt.subplots()
+    data.set_index("Región").plot.area(ax=ax, alpha=0.6)
+    ax.set_title("Percepción acumulada por región")
+    st.pyplot(fig)
 
-# Entrenar modelos
-biased_model = train_model(biased=True)
-fair_model = train_model(biased=False)
+# Gráfico: Línea con escala exagerada
+elif chart_type == "Line Chart con exageración":
+    exaggerated = data.copy()
+    exaggerated[['Producto A', 'Producto B']] = exaggerated[['Producto A', 'Producto B']] * 10
+    fig, ax = plt.subplots()
+    exaggerated.set_index("Región").plot(ax=ax, linestyle='--', marker='o')
+    ax.set_title("Escala exagerada (¡cuidado con la manipulación!)")
+    st.pyplot(fig)
 
-# Realizar predicciones
-biased_result = predict(biased_model, income, gender_val, race_val)
-fair_result = predict(fair_model, income, gender_val, race_val)
-
-# Mostrar resultados
-st.markdown("## 🧪 Resultados:")
-st.write(f"🔴 **Modelo con sesgo:** {'✅ Aprobado' if biased_result else '❌ Rechazado'}")
-st.write(f"🟢 **Modelo justo:** {'✅ Aprobado' if fair_result else '❌ Rechazado'}")
-
-# Análisis ético
-if biased_result != fair_result:
-    st.warning("⚠️ El modelo sesgado tomó una decisión distinta influenciada por género o raza.")
-else:
-    st.success("✅ Ambos modelos llegaron a la misma decisión.")
-
-# Detalles opcionales
-with st.expander("🔎 Ver datos de entrenamiento"):
-    st.markdown("#### Modelo Sesgado")
-    st.dataframe(get_dataset(biased=True))
-    st.markdown("#### Modelo Justo")
-    st.dataframe(get_dataset(biased=False))
+# Gráfico: Pie chart por región
+elif chart_type == "Pie Chart por región":
+    region = st.selectbox("Selecciona la región:", data["Región"])
+    row = data[data["Región"] == region][['Producto A', 'Producto B']].iloc[0]
+    fig, ax = plt.subplots()
+    ax.pie(row, labels=row.index, autopct='%1.1f%%', startangle=90, colors=["lightgreen", "salmon"])
+    ax.set_title(f"Participación en la región {region}")
+    st.pyplot(fig)
