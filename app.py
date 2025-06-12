@@ -1,26 +1,57 @@
 import streamlit as st
-from deepface import DeepFace
-from PIL import Image
-import numpy as np
-import cv2
+import pandas as pd
 
-st.title("🎭 ¿Qué tan bien te reconoce una máquina?")
-st.markdown("Compara dos imágenes usando reconocimiento facial con DeepFace.")
+st.set_page_config(page_title="¿Cómo me espía el algoritmo?", layout="centered")
+st.title("🧠 ¿Cómo me espía el algoritmo?")
+st.subheader("Simulación de un sistema de recomendación")
 
-img1_file = st.file_uploader("📷 Imagen 1", type=["jpg", "jpeg", "png"])
-img2_file = st.file_uploader("📸 Imagen 2", type=["jpg", "jpeg", "png"])
+st.markdown("""
+Esta demo simula cómo un algoritmo de recomendación analiza los gustos de diferentes usuarios y genera sugerencias personalizadas.
+""")
 
-if img1_file and img2_file:
-    img1 = Image.open(img1_file)
-    img2 = Image.open(img2_file)
-    
-    st.image([img1, img2], caption=["Imagen 1", "Imagen 2"], width=300)
+# Dataset ficticio de contenido
+catalogo = pd.DataFrame([
+    {"Nombre": "Stranger Things", "Género": "Ciencia Ficción"},
+    {"Nombre": "Dark", "Género": "Ciencia Ficción"},
+    {"Nombre": "Breaking Bad", "Género": "Drama"},
+    {"Nombre": "Narcos", "Género": "Crimen"},
+    {"Nombre": "Mindhunter", "Género": "Crimen"},
+    {"Nombre": "The Office", "Género": "Comedia"},
+    {"Nombre": "Brooklyn Nine-Nine", "Género": "Comedia"},
+    {"Nombre": "Game of Thrones", "Género": "Fantasía"},
+    {"Nombre": "The Witcher", "Género": "Fantasía"},
+    {"Nombre": "Black Mirror", "Género": "Ciencia Ficción"},
+])
 
-    try:
-        result = DeepFace.verify(img1, img2, enforce_detection=False)
-        if result["verified"]:
-            st.success("✅ ¡Las imágenes parecen de la misma persona!")
-        else:
-            st.warning("❌ No parecen ser la misma persona.")
-    except Exception as e:
-        st.error(f"Error en el análisis: {str(e)}")
+# Perfiles simulados de usuarios
+usuarios = {
+    "Usuario 1 - Crimen": ["Narcos", "Mindhunter"],
+    "Usuario 2 - Comedia": ["The Office", "Brooklyn Nine-Nine"],
+    "Usuario 3 - Fantasía": ["The Witcher", "Game of Thrones"],
+    "Usuario 4 - Ciencia Ficción": ["Stranger Things", "Dark"],
+    "Usuario 5 - Drama + Crimen": ["Breaking Bad", "Narcos"]
+}
+
+usuario_seleccionado = st.selectbox("👤 Elige un usuario para simular", list(usuarios.keys()))
+gustos = usuarios[usuario_seleccionado]
+
+# Mostrar gustos
+st.markdown(f"**Contenido visto por {usuario_seleccionado}:**")
+for titulo in gustos:
+    st.markdown(f"- {titulo}")
+
+# Inferencia de género preferido
+gustos_df = catalogo[catalogo["Nombre"].isin(gustos)]
+generos = gustos_df["Género"].value_counts()
+genero_preferido = generos.idxmax()
+
+# Mostrar resultado
+st.markdown(f"🔍 El algoritmo ha detectado que este usuario prefiere el género **{genero_preferido}**.")
+
+# Recomendaciones
+sugerencias = catalogo[~catalogo["Nombre"].isin(gustos)]
+recomendadas = sugerencias[sugerencias["Género"] == genero_preferido]
+
+st.markdown("🎯 **Recomendaciones generadas automáticamente:**")
+for nombre in recomendadas["Nombre"].sample(min(3, len(recomendadas))):
+    st.markdown(f"- {nombre}")
