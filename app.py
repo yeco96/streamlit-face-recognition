@@ -311,7 +311,8 @@ data = {
         "tecnologia",
         "salud y bienestar",
         "entretenimiento",
-        "hogar y jardin"
+        "hogar y jardin",
+        "tecnologia"
     ],
     "anuncio_sugerido": [
         "Correas resistentes para perros grandes",
@@ -465,7 +466,8 @@ data = {
         "Pantalla LG 4K de 32 pulgadas",
         "Recetario vegano gratuito",
         "Estrenos en Netflix",
-        "Luces inteligentes Alexa"
+        "Luces inteligentes Alexa",
+        "Xiami S20+",
     ]
 }
 
