@@ -4,7 +4,7 @@ import pandas as pd
 # --- Conjunto de Datos de Búsquedas y Temas de Interés ---
 # Este es nuestro "historial" de búsquedas y los temas de interés asociados.
 # En un sistema real, esto provendría de una base de datos o un data lake.
-{
+data = {
     "busqueda": [
         "zapatillas deportivas", "ropa de ejercicio", "suplementos fitness",
         "recetas saludables", "entrenamiento en casa", "yoga principiantes",
