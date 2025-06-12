@@ -1,57 +1,55 @@
 import streamlit as st
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
 
-st.set_page_config(page_title="¿Cómo me espía el algoritmo?", layout="centered")
-st.title("🧠 ¿Cómo me espía el algoritmo?")
-st.subheader("Simulación de un sistema de recomendación")
+# Dataset ficticio con sesgo (simulación)
+def get_dataset(biased=True):
+    data = {
+        'income': [50000, 60000, 30000, 40000, 80000, 35000],
+        'gender': [0, 1, 0, 1, 0, 1],  # 0: Male, 1: Female
+        'race': [0, 0, 1, 1, 0, 1],    # 0: White, 1: Black
+        'approved': [1, 1, 0, 0, 1, 0] if biased else [1, 1, 1, 1, 1, 1]
+    }
+    return pd.DataFrame(data)
 
-st.markdown("""
-Esta demo simula cómo un algoritmo de recomendación analiza los gustos de diferentes usuarios y genera sugerencias personalizadas.
-""")
+def train_model(biased=True):
+    df = get_dataset(biased)
+    X = df[['income', 'gender', 'race']]
+    y = df['approved']
+    model = LogisticRegression()
+    model.fit(X, y)
+    return model
 
-# Dataset ficticio de contenido
-catalogo = pd.DataFrame([
-    {"Nombre": "Stranger Things", "Género": "Ciencia Ficción"},
-    {"Nombre": "Dark", "Género": "Ciencia Ficción"},
-    {"Nombre": "Breaking Bad", "Género": "Drama"},
-    {"Nombre": "Narcos", "Género": "Crimen"},
-    {"Nombre": "Mindhunter", "Género": "Crimen"},
-    {"Nombre": "The Office", "Género": "Comedia"},
-    {"Nombre": "Brooklyn Nine-Nine", "Género": "Comedia"},
-    {"Nombre": "Game of Thrones", "Género": "Fantasía"},
-    {"Nombre": "The Witcher", "Género": "Fantasía"},
-    {"Nombre": "Black Mirror", "Género": "Ciencia Ficción"},
-])
+def predict(model, income, gender, race):
+    X_new = pd.DataFrame([[income, gender, race]], columns=['income', 'gender', 'race'])
+    return model.predict(X_new)[0]
 
-# Perfiles simulados de usuarios
-usuarios = {
-    "Usuario 1 - Crimen": ["Narcos", "Mindhunter"],
-    "Usuario 2 - Comedia": ["The Office", "Brooklyn Nine-Nine"],
-    "Usuario 3 - Fantasía": ["The Witcher", "Game of Thrones"],
-    "Usuario 4 - Ciencia Ficción": ["Stranger Things", "Dark"],
-    "Usuario 5 - Drama + Crimen": ["Breaking Bad", "Narcos"]
-}
+# UI
+st.title("⚖️ ¿Y si el algoritmo es racista?")
+st.subheader("Simulación: Aprobación de crédito con y sin sesgo")
 
-usuario_seleccionado = st.selectbox("👤 Elige un usuario para simular", list(usuarios.keys()))
-gustos = usuarios[usuario_seleccionado]
+income = st.number_input("Ingreso anual (USD)", 10000, 100000, step=5000)
+gender = st.selectbox("Género", ["Masculino", "Femenino"])
+race = st.selectbox("Raza", ["Blanco", "Negro"])
 
-# Mostrar gustos
-st.markdown(f"**Contenido visto por {usuario_seleccionado}:**")
-for titulo in gustos:
-    st.markdown(f"- {titulo}")
+# Convertir inputs a valores numéricos
+gender_val = 0 if gender == "Masculino" else 1
+race_val = 0 if race == "Blanco" else 1
 
-# Inferencia de género preferido
-gustos_df = catalogo[catalogo["Nombre"].isin(gustos)]
-generos = gustos_df["Género"].value_counts()
-genero_preferido = generos.idxmax()
+# Modelos
+biased_model = train_model(biased=True)
+fair_model = train_model(biased=False)
 
-# Mostrar resultado
-st.markdown(f"🔍 El algoritmo ha detectado que este usuario prefiere el género **{genero_preferido}**.")
+# Predicciones
+biased_result = predict(biased_model, income, gender_val, race_val)
+fair_result = predict(fair_model, income, gender_val, race_val)
 
-# Recomendaciones
-sugerencias = catalogo[~catalogo["Nombre"].isin(gustos)]
-recomendadas = sugerencias[sugerencias["Género"] == genero_preferido]
+st.markdown("### Resultados:")
+st.write(f"🔴 **Modelo con sesgo:** {'Aprobado ✅' if biased_result else 'Rechazado ❌'}")
+st.write(f"🟢 **Modelo justo:** {'Aprobado ✅' if fair_result else 'Rechazado ❌'}")
 
-st.markdown("🎯 **Recomendaciones generadas automáticamente:**")
-for nombre in recomendadas["Nombre"].sample(min(3, len(recomendadas))):
-    st.markdown(f"- {nombre}")
+if biased_result != fair_result:
+    st.warning("⚠️ El modelo sesgado tomó una decisión diferente basada en género o raza.")
+else:
+    st.success("✅ Ambos modelos llegaron al mismo resultado.")
+
