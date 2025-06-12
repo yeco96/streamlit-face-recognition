@@ -1,128 +1,102 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
-st.set_page_config(page_title="Detective de Datos: Detección de Fraude", layout="wide")
+# --- Conjunto de Datos de Búsquedas y Temas de Interés ---
+# Este es nuestro "historial" de búsquedas y los temas de interés asociados.
+# En un sistema real, esto provendría de una base de datos o un data lake.
+data = {
+    "busqueda": [
+        "zapatillas deportivas", "ropa de ejercicio", "suplementos fitness",
+        "recetas saludables", "entrenamiento en casa", "yoga principiantes",
+        "smartwatch deportivo", "auriculares inalambricos gym",
+        "camisetas running", "mancuernas ajustables",
+        "peliculas de ciencia ficcion", "series de fantasia", "libros de misterio",
+        "videojuegos de rol", "consolas de nueva generacion",
+        "coches electricos", "motos deportivas", "bicicletas de montaña",
+        "viajes a la playa", "hoteles baratos",
+        "herramientas de jardin", "plantas de interior", "macetas decorativas"
+    ],
+    "tema_interes": [
+        "fitness", "fitness", "fitness",
+        "salud y bienestar", "fitness", "salud y bienestar",
+        "tecnologia", "tecnologia",
+        "fitness", "fitness",
+        "entretenimiento", "entretenimiento", "entretenimiento",
+        "entretenimiento", "tecnologia",
+        "automovilismo", "automovilismo", "deportes al aire libre",
+        "viajes", "viajes",
+        "hogar y jardin", "hogar y jardin", "hogar y jardin"
+    ],
+    "anuncio_sugerido": [
+        "Oferta de zapatillas Nike", "Descuento en ropa Adidas", "Promo en proteínas",
+        "Curso de cocina saludable online", "App de entrenamiento personalizado", "Clases de yoga en línea",
+        "Nuevo Apple Watch", "Audífonos Bluetooth JBL",
+        "Ropa deportiva Under Armour", "Mancuernas ajustables PowerBlock",
+        "Estrenos en Netflix", "Sagas literarias épicas", "Novelas de suspense",
+        "Juegos para PlayStation 5", "Ofertas en consolas Xbox",
+        "Test drive de Tesla", "Motos Ducati a tu medida", "Bicicletas de montaña Trek",
+        "Paquetes turísticos a Cancún", "Hoteles con descuento en Punta Cana",
+        "Herramientas de jardinería profesionales", "Plantas exóticas para tu hogar", "Macetas de diseño"
+    ]
+}
 
-st.title("🕵️‍♂️ El Detective de Datos: Desvelando Patrones de Fraude")
+df_busquedas = pd.DataFrame(data)
 
-st.write(
-    "Imagina que somos un banco y queremos detectar transacciones sospechosas. "
-    "Usaremos la Ciencia de Datos para encontrar patrones 'extraños' en nuestros datos."
-)
+# --- Función para Sugerir Anuncios ---
+def sugerir_anuncios(busqueda_usuario):
+    # Convertir la búsqueda del usuario a minúsculas para una comparación insensible a mayúsculas
+    busqueda_usuario_lower = busqueda_usuario.lower()
 
-st.sidebar.header("Configuración de la Detección")
+    # Buscar temas de interés relacionados con la búsqueda del usuario
+    temas_relacionados = df_busquedas[df_busquedas["busqueda"].str.contains(busqueda_usuario_lower, case=False)]["tema_interes"].unique()
 
-# --- Generación de Datos Simulados ---
-@st.cache_data
-def generate_data(num_transactions=1000, num_fraud=30):
-    np.random.seed(42) # Para reproducibilidad
+    sugerencias = []
+    if len(temas_relacionados) > 0:
+        # Si encontramos temas relacionados, sugerimos anuncios basados en esos temas
+        for tema in temas_relacionados:
+            anuncios_posibles = df_busquedas[df_busquedas["tema_interes"] == tema]["anuncio_sugerido"].tolist()
+            sugerencias.extend(anuncios_posibles)
+    else:
+        # Si no hay coincidencias directas, se podría implementar una lógica más compleja
+        # (por ejemplo, buscar palabras clave, usar modelos de embeddings, etc.)
+        # Para este ejemplo simple, si no hay coincidencia directa, sugerimos anuncios generales
+        sugerencias = ["Anuncios generales: ¡Descubre ofertas en productos variados!", "Prueba nuestros servicios premium", "Explora nuevas categorías"]
 
-    # Transacciones normales
-    normal_monto = np.random.normal(loc=50, scale=20, size=num_transactions)
-    normal_frecuencia = np.random.normal(loc=3, scale=1, size=num_transactions)
-    df_normal = pd.DataFrame({
-        'Monto_Transaccion': np.clip(normal_monto, 1, 100), # Monto entre 1 y 100
-        'Frecuencia_Compra_Dia': np.clip(normal_frecuencia, 0.5, 5), # Frecuencia entre 0.5 y 5
-        'Tipo': 'Normal'
-    })
+    # Eliminar duplicados y devolver una muestra limitada
+    return list(set(sugerencias))[:5] # Limitar a 5 sugerencias para no abrumar
 
-    # Transacciones fraudulentas (simulamos que son de montos muy altos y/or frecuencias muy bajas)
-    fraud_monto = np.random.normal(loc=150, scale=30, size=num_fraud)
-    fraud_frecuencia = np.random.normal(loc=0.8, scale=0.3, size=num_fraud)
-    df_fraud = pd.DataFrame({
-        'Monto_Transaccion': np.clip(fraud_monto, 100, 200),
-        'Frecuencia_Compra_Dia': np.clip(fraud_frecuencia, 0.1, 1.5),
-        'Tipo': 'Fraude'
-    })
+# --- Interfaz de Usuario con Streamlit ---
+st.set_page_config(page_title="Emulación de Anuncios Sugeridos", layout="centered")
 
-    df = pd.concat([df_normal, df_fraud], ignore_index=True)
-    df = df.sample(frac=1, random_state=42).reset_index(drop=True) # Mezclar los datos
-    return df
+st.title("🔎 Emulación de Sugerencia de Anuncios Basada en Búsquedas")
+st.markdown("""
+Este ejemplo simula cómo las búsquedas de un usuario en una plataforma
+podrían influir en los anuncios que se le muestran.
+Introduce algunas palabras clave en el buscador y mira qué anuncios se sugieren.
+""")
 
-df = generate_data()
+st.subheader("Simulador de Búsqueda")
+user_input = st.text_input("¿Qué estás buscando hoy?", placeholder="Ej: zapatillas deportivas, peliculas de ciencia ficcion, viajes")
 
-st.subheader("Simulación de Transacciones Bancarias")
-st.write(f"Hemos generado {len(df)} transacciones para nuestro análisis.")
-st.dataframe(df.head())
+if user_input:
+    st.subheader("Anuncios Sugeridos para ti:")
+    sugerencias_anuncios = sugerir_anuncios(user_input)
 
-# --- Gráfico de Dispersión Interactivo ---
-st.subheader("Análisis Visual de Transacciones")
-st.write(
-    "Observa cómo se agrupan las transacciones por su **Monto** y **Frecuencia de Compra**. "
-    "Las transacciones de fraude (en rojo) suelen ser 'puntos atípicos' que se desvían de lo normal."
-)
+    if sugerencias_anuncios:
+        for anuncio in sugerencias_anuncios:
+            st.info(f"👉 {anuncio}")
+    else:
+        st.write("No hay sugerencias de anuncios en este momento para tu búsqueda específica. ¡Intenta con otras palabras clave!")
 
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.scatterplot(
-    data=df,
-    x='Frecuencia_Compra_Dia',
-    y='Monto_Transaccion',
-    hue='Tipo', # Colorear por tipo (Normal/Fraude)
-    palette={'Normal': 'blue', 'Fraude': 'red'},
-    s=100,
-    alpha=0.7,
-    ax=ax
-)
-ax.set_title("Monto vs. Frecuencia de Compra por Transacción")
-ax.set_xlabel("Frecuencia de Compra por Día")
-ax.set_ylabel("Monto de Transacción ($)") # CORRECTED LINE
-st.pyplot(fig)
+st.markdown("---")
+st.subheader("Cómo funciona (Detrás de Escena):")
+st.markdown("""
+1.  **Conjunto de Datos:** Tenemos un conjunto de datos simple que asocia palabras clave de búsqueda con "temas de interés" (por ejemplo, 'fitness', 'entretenimiento', 'viajes').
+2.  **Mapeo:** Cuando ingresas una búsqueda, el sistema intenta mapear tus palabras clave a uno o más de estos temas de interés.
+3.  **Sugerencia:** Una vez que se identifica un tema de interés, se muestran anuncios que están pre-asociados con ese tema en nuestro conjunto de datos.
+""")
 
-# --- Detector de Fraude con Umbral Interactivo ---
-st.sidebar.subheader("Ajuste del Umbral de Detección")
-st.sidebar.write(
-    "Ajusta el umbral del **Monto de Transacción** para ver cuántas transacciones "
-    "sospechosas podemos 'detectar'. Una transacción será marcada como fraude si su monto supera este umbral."
-)
+st.subheader("Datos de Ejemplo Utilizados:")
+st.dataframe(df_busquedas)
 
-umbral_monto = st.sidebar.slider(
-    "Monto Mínimo para Fraude ($)",
-    min_value=50.0,
-    max_value=200.0,
-    value=100.0, # Umbral por defecto
-    step=5.0
-)
-
-st.sidebar.write(
-    "Ajusta el umbral de la **Frecuencia de Compra** para afinar la detección. "
-    "Una transacción será marcada como fraude si su frecuencia es *inferior* a este umbral."
-)
-umbral_frecuencia = st.sidebar.slider(
-    "Frecuencia Máxima para Fraude (por día)",
-    min_value=0.1,
-    max_value=5.0,
-    value=1.5, # Umbral por defecto
-    step=0.1
-)
-
-# Aplicar el umbral y contar detecciones
-df['Detectado_como_Fraude'] = (df['Monto_Transaccion'] > umbral_monto) & \
-                             (df['Frecuencia_Compra_Dia'] < umbral_frecuencia)
-
-num_detectado = df['Detectado_como_Fraude'].sum()
-num_fraude_real = df[df['Tipo'] == 'Fraude'].shape[0]
-
-st.subheader("Resultados de la Detección")
-col1, col2 = st.columns(2)
-
-with col1:
-    st.metric(label="Transacciones Marcadas como Sospechosas", value=num_detectado)
-with col2:
-    st.metric(label="Transacciones de Fraude Real (en nuestros datos)", value=num_fraude_real)
-
-st.write(
-    f"Al aplicar los umbrales de Monto > ${umbral_monto:.2f} y Frecuencia < {umbral_frecuencia:.2f} compras/día, "
-    f"hemos marcado **{num_detectado}** transacciones como potencialmente fraudulentas."
-)
-
-st.write("---")
-st.write(
-    "**Conclusión para tus compañeros:**"
-    "Como ven, la Ciencia de Datos nos permite ir más allá de lo obvio. "
-    "Al visualizar y ajustar parámetros, podemos entrenar a nuestros 'detectives de datos' "
-    "para identificar patrones que, de otra forma, pasarían desapercibidos. "
-    "Esto es crucial para proteger el dinero de los clientes y la salud financiera del banco."
-)
+st.caption("Nota: Este es un ejemplo simplificado. Un sistema de sugerencia de anuncios real sería mucho más complejo, utilizando algoritmos de machine learning, análisis de comportamiento del usuario, historial de clics, datos demográficos, etc.")
