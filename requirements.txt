@@ -1,5 +1,2 @@
 streamlit
-opencv-python
-deepface
-numpy
-Pillow
+pandas
